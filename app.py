@@ -27,7 +27,7 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=10, ping_interval=5)
+socketio = SocketIO(app, cors_allowed_origins="https://chatestudiantilcul.onrender.com", ping_timeout=10, ping_interval=5)
 
 @app.route('/')
 def index():
