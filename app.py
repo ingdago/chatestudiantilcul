@@ -4,7 +4,6 @@ from flask_socketio import SocketIO, join_room, leave_room, send
 import bcrypt
 import os
 import pymysql
-import eventlet
 
 app = Flask(__name__)
 CORS(app)
