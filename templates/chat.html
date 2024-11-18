@@ -55,13 +55,13 @@
                 <!-- Lista de Contactos -->
                 <div class="list-group contact-list" id="contact-list">
                     {% for contact in contactos %}
-                    {% set room = [usuario, contacto.usuario] | sort | join('-') %}
+                    {% set room = [usuario, contact.usuario] | sort | join('-') %}
                     <button type="button" class="list-group-item list-group-item-action contact-item"
-                        id="card-{{ room }}" onclick="selectUser('{{ contact[0] }}')">
+                        id="card-{{ room }}" onclick="selectUser('{{ contact.usuario }}')">
                         <div class="d-flex w-100 justify-content-between align-items-center">
                             <div>
                                 <i class="fas fa-user-circle me-2 contact-icon"></i>
-                                <span class="contact-name">{{ contact[0] }}</span>
+                                <span class="contact-name">{{ contact.usuario }}</span>
                             </div>
                             <span class="badge bg-success notification-badge" style="display: none;">0</span>
                         </div>
@@ -82,16 +82,17 @@
                 <div class="list-group group-list" id="group-list">
                     {% for group in grupos %}
                     <button type="button" class="list-group-item list-group-item-action group-item"
-                        id="card-{{ group[0] }}" onclick="selectGroup('{{ group[0] }}')">
+                        id="card-{{ group.nombre }}" onclick="selectGroup('{{ group.nombre }}')">
                         <div class="d-flex w-100 justify-content-between align-items-center">
                             <div>
                                 <i class="fas fa-users me-2 contact-icon"></i>
-                                <span class="group-name">{{ group[0] }}</span>
+                                <span class="group-name">{{ group.nombre }}</span>
                             </div>
                             <span class="badge bg-success notification-badge" style="display: none;">0</span>
                         </div>
                     </button>
                     {% endfor %}
+
                 </div>
             </div>
 
