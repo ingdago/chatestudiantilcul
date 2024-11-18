@@ -55,7 +55,7 @@
                 <!-- Lista de Contactos -->
                 <div class="list-group contact-list" id="contact-list">
                     {% for contact in contactos %}
-                    {% set room = [usuario, contact[0]] | sort | join('-') %}
+                    {% set room = [usuario, contacto.usuario] | sort | join('-') %}
                     <button type="button" class="list-group-item list-group-item-action contact-item"
                         id="card-{{ room }}" onclick="selectUser('{{ contact[0] }}')">
                         <div class="d-flex w-100 justify-content-between align-items-center">
