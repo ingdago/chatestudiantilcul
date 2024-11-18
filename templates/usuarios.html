@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet" href="../static/css/usuarios.css">
+    <title>Chat Estudiantil</title>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('chat') }}">
+                <i class="fas fa-comments me-2"></i>Chat Estudiantil
+            </a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if session.get('usuario') %}
+                    <li class="nav-item"><a class="nav-link">Hola, {{ session['usuario'] }}</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('chat') }}">Chat</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('grupos') }}">Grupos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Cerrar sesión</a></li>
+                    {% else %}
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('login') }}">Iniciar sesión</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Registrarse</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4" id="usuarios">
+        <h5>Usuarios Registrados</h5>
+        <div class="scroll-container">
+            <ul id="lista-usuarios" class="list-group">
+                {% for user in usuarios %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ user[0] }}
+                    <div class="d-flex align-items-center">
+                        {% if user[0] in contactos %}
+                        <span class="badge bg-success me-2">✓ Agregado</span>
+                        {% endif %}
+                        <button class="btn btn-primary btn-sm"
+                            onclick="agregarContacto('{{ user[0] }}')">Agregar</button>
+                        <button class="btn btn-danger btn-sm"
+                            onclick="eliminarContacto('{{ user[0] }}')">Eliminar</button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+
+    <script>
+        function agregarContacto(contacto) {
+            fetch('/agregar_contacto', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ contacto: contacto })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // Opcional: actualizar la lista de contactos en la página
+                    location.reload();
+                });
+        }
+
+        function eliminarContacto(contacto) {
+            fetch('/eliminar_contacto', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ contacto: contacto })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // Opcional: actualizar la lista de contactos en la página
+                    location.reload();
+                });
+        }
+    </script>
+</body>
+
+</html>

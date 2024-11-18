@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Estudiantil</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../static/css/chat.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('chat') }}">
+                <i class="fas fa-comments me-2"></i>Chat Estudiantil
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if session.get('usuario') %}
+                    <li class="nav-item"><a class="nav-link">Hola, {{ session['usuario'] }}</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('usuarios') }}">Usuarios</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('grupos') }}">Grupos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Cerrar sesión</a></li>
+                    {% else %}
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('login') }}">Iniciar sesión</a>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Registrarse</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenedor Principal -->
+    <div class="container-fluid mt-5 pt-3">
+        <div class="row">
+            <!-- Panel Izquierdo: Lista de Contactos -->
+            <div class="col-12 col-md-4 col-lg-3 mb-3">
+                <!-- Cuadro de Búsqueda de Contactos -->
+                <div class="search-bar mb-3">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="search-input" class="form-control" placeholder="Buscar contactos..."
+                        onkeyup="filterContacts()">
+                </div>
+                <!-- Lista de Contactos -->
+                <div class="list-group contact-list" id="contact-list">
+                    {% for contact in contactos %}
+                    {% set room = [usuario, contact[0]] | sort | join('-') %}
+                    <button type="button" class="list-group-item list-group-item-action contact-item"
+                        id="card-{{ room }}" onclick="selectUser('{{ contact[0] }}')">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-circle me-2 contact-icon"></i>
+                                <span class="contact-name">{{ contact[0] }}</span>
+                            </div>
+                            <span class="badge bg-success notification-badge" style="display: none;">0</span>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Panel Central: Lista de Grupos -->
+            <div class="col-12 col-md-4 col-lg-3 mb-3">
+                <!-- Cuadro de Búsqueda de Grupos -->
+                <div class="search-bar-group mb-3">
+                    <i class="fas fa-search search-icon-group"></i>
+                    <input type="text" id="search-group-input" class="form-control" placeholder="Buscar grupos..."
+                        onkeyup="filterGroups()">
+                </div>
+                <!-- Lista de Grupos -->
+                <div class="list-group group-list" id="group-list">
+                    {% for group in grupos %}
+                    <button type="button" class="list-group-item list-group-item-action group-item"
+                        id="card-{{ group[0] }}" onclick="selectGroup('{{ group[0] }}')">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-users me-2 contact-icon"></i>
+                                <span class="group-name">{{ group[0] }}</span>
+                            </div>
+                            <span class="badge bg-success notification-badge" style="display: none;">0</span>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Cuadro de Chat -->
+            <div class="col-12 col-md-8 col-lg-6 mb-3" id="panel-chat">
+                <div class="card chat-box-panel" id="chat-box-p" style="display: none">
+                    <div class="card-header chat-header">
+                        <span id="chat-contacto"></span>
+                    </div>
+                    <div class="card-body chat-messages" id="chat-messages"></div>
+                    <div class="card-footer chat-input">
+                        <input type="text" id="mensaje" class="form-control" placeholder="Escribe un mensaje...">
+                        <button id="enviar-btn" class="btn btn-primary">Enviar</button>
+                    </div>
+                </div>
+                <div class="card mensaje-select" id="mensaje-select" style="display: block;">
+                    <div class="card-body select-contact-message">
+                        <p>Selecciona un contacto para chatear</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+
+        // Conexión a Socket.IO
+        //const socket = io('https://1779-2800-e2-4680-885-1cae-b8e0-4249-658b.ngrok-free.app');
+        const socket = io('http://192.168.1.2:5000');
+        const usuario = "{{ usuario }}"; // 'usuario' está definido ahora
+        let contactoSeleccionado = null;
+        let currentRoom = null;
+        let chatHistory = {}; // Historial de mensajes por sala
+        let unreadMessages = {}; // Contador de mensajes no leídos por sala
+
+        socket.on('connect', () => {
+            console.log("Conectado al servidor Socket.IO");
+        });
+
+        socket.on('receive_message', data => {
+            console.log(`Mensaje recibido en sala ${data.room}:`, data);
+
+            const { room, usuario: sender, message } = data;
+
+            if (!chatHistory[room]) {
+                chatHistory[room] = [];
+            }
+            chatHistory[room].push({ sender, message });
+
+            // Mostrar el mensaje si el chat está abierto en la sala correcta
+            if (room === currentRoom && document.getElementById('chat-box-p').style.display === 'block') {
+                const messages = document.getElementById('chat-messages');
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender === usuario ? 'message-user' : 'message-sender');
+                messageElement.innerHTML = `<strong>${sender === usuario ? 'Tú' : sender}:</strong> ${message}`;
+                messages.appendChild(messageElement);
+                messages.scrollTop = messages.scrollHeight;
+            } else {
+                // Incrementar el contador de mensajes no leídos para la sala
+                if (!unreadMessages[room]) {
+                    unreadMessages[room] = 0;
+                }
+                unreadMessages[room] += 1;
+
+                // Actualizar el badge de notificaciones
+                const card = document.getElementById(`card-${room}`);
+                if (card) {
+                    const notificationBadge = card.querySelector('.notification-badge');
+                    if (notificationBadge) {
+                        notificationBadge.textContent = unreadMessages[room];
+                        notificationBadge.style.display = 'inline';
+                    } else {
+                        console.log('No se encontró el elemento .notification-badge en la tarjeta.');
+                    }
+                } else {
+                    console.log(`No se encontró la tarjeta con id: card-${room}`);
+                }
+            }
+        });
+
+        // Función para enviar mensajes
+        function sendMensaje() {
+            const mensaje = document.getElementById('mensaje').value.trim();
+            if (mensaje && currentRoom) { // Solo envía si hay un mensaje y una sala seleccionada
+                console.log(`Enviando mensaje a la sala: ${currentRoom}`); // Verificar el nombre de la sala
+
+                // Emitir el mensaje al servidor en la sala específica
+                socket.emit('send_message', { usuario, message: mensaje, room: currentRoom });
+
+                // Limpiar el campo de entrada
+                document.getElementById('mensaje').value = '';
+            }
+        }
+
+        // Asignar el evento click al botón "Enviar"
+        document.getElementById('enviar-btn').addEventListener('click', sendMensaje);
+
+        // Manejador para la tecla Enter
+        document.getElementById('mensaje').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Evitar salto de línea en el campo de entrada
+                sendMensaje();
+            }
+        });
+
+        function selectUser(contacto) {
+            contactoSeleccionado = contacto;
+            currentRoom = [usuario, contacto].sort().join('-'); // Ordena y une los nombres
+
+            joinRoom(currentRoom);
+
+            const selectContactMessage = document.getElementById('mensaje-select');
+            const chatBox = document.getElementById('chat-box-p');
+            chatBox.style.display = 'block';
+            selectContactMessage.style.display = 'none';
+
+            loadChatMessages(currentRoom);
+            document.getElementById('chat-contacto').textContent = contacto;
+            document.getElementById('mensaje').focus();
+            clearUnreadMessages(currentRoom);
+
+            // En dispositivos móviles, desplazar al chat
+            if (window.innerWidth < 768) {
+                chatBox.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function selectGroup(groupName) {
+            contactoSeleccionado = null; // No hay un contacto específico para un chat grupal
+            currentRoom = groupName; // Usar el nombre del grupo como la sala
+
+            joinRoom(currentRoom); // Unirse a la sala del grupo directamente
+
+            // Mostrar el cuadro de chat grupal
+            const selectContactMessage = document.getElementById('mensaje-select');
+            const chatBox = document.getElementById('chat-box-p');
+            chatBox.style.display = 'block';
+            selectContactMessage.style.display = 'none';
+
+            loadChatMessages(currentRoom);
+            document.getElementById('chat-contacto').textContent = groupName;
+            document.getElementById('mensaje').focus();
+            clearUnreadMessages(currentRoom);
+
+            // En dispositivos móviles, desplazar al chat
+            if (window.innerWidth < 768) {
+                chatBox.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function joinRoom(room) {
+            if (currentRoom) {
+                leaveRoom(currentRoom);  // Sal de la sala anterior antes de unirte a una nueva
+            }
+            currentRoom = room;
+            socket.emit('join', { room: currentRoom });
+            console.log(`Unido a la sala: ${currentRoom}`); // Log para verificar
+        }
+
+        function leaveRoom(room) {
+            socket.emit('leave', room);
+            console.log(`Abandonado la sala: ${room}`); // Log para verificar
+        }
+
+        function loadChatMessages(room) {
+            const messages = document.getElementById('chat-messages');
+            messages.innerHTML = ''; // Limpia los mensajes previos en el DOM
+
+            $.ajax({
+                url: '/get_messages',
+                method: 'GET',
+                data: { room: room },
+                success: function (response) {
+                    if (response.messages) {
+                        response.messages.forEach(msg => {
+                            const messageElement = document.createElement('div');
+                            messageElement.classList.add('message');
+                            if (msg.sender === usuario) {
+                                messageElement.classList.add('message-user');
+                                messageElement.innerHTML = `<strong>Tú:</strong> ${msg.message}`;
+                            } else {
+                                messageElement.classList.add('message-sender');
+                                messageElement.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message}`;
+                            }
+                            messages.appendChild(messageElement);
+                        });
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                },
+                error: function (error) {
+                    console.error('Error fetching messages:', error);
+                }
+            });
+        }
+
+        function clearUnreadMessages(room) {
+            if (unreadMessages[room]) {
+                unreadMessages[room] = 0; // Restablecer el contador
+            }
+            const card = document.getElementById(`card-${room}`);
+            if (card) {
+                const notificationBadge = card.querySelector('.notification-badge');
+                if (notificationBadge) {
+                    notificationBadge.style.display = 'none'; // Ocultar el badge
+                }
+            }
+        }
+
+        function filterContacts() {
+            const searchInput = document.getElementById('search-input').value.toLowerCase();
+            const contactItems = document.querySelectorAll('.contact-item');
+
+            contactItems.forEach(item => {
+                const contactName = item.querySelector('.contact-name').textContent.toLowerCase();
+                if (contactName.includes(searchInput)) {
+                    item.style.display = 'block'; // Mostrar contacto si coincide
+                } else {
+                    item.style.display = 'none'; // Ocultar contacto si no coincide
+                }
+            });
+        }
+
+        function filterGroups() {
+            const searchInput = document.getElementById('search-group-input').value.toLowerCase();
+            const groupItems = document.querySelectorAll('.group-item');
+
+            groupItems.forEach(item => {
+                const groupName = item.textContent.toLowerCase();
+                if (groupName.includes(searchInput)) {
+                    item.style.display = 'block'; // Mostrar grupo si coincide
+                } else {
+                    item.style.display = 'none'; // Ocultar grupo si no coincide
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>
